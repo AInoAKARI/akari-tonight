@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AIﾉアカリ☆（Tonight）</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif; }
+    body { margin:0; background:#070a12; color:#eaf0ff; }
+    .wrap { max-width: 980px; margin:0 auto; padding: 12px; display:grid; gap:12px; }
+    .card { background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:12px; }
+    .top { display:grid; grid-template-columns: 1fr; gap:12px; }
+    @media (min-width: 820px){ .top{ grid-template-columns: 420px 1fr; } }
+
+    .stage {
+      position:relative; height: 520px; border-radius:18px; overflow:hidden;
+      background:
+        radial-gradient(900px 600px at 30% 20%, rgba(120,180,255,.22), rgba(0,0,0,0)),
+        radial-gradient(800px 500px at 80% 80%, rgba(255,140,200,.18), rgba(0,0,0,0));
+    }
+    .particles::before, .particles::after{
+      content:""; position:absolute; inset:-40px; background:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.18), rgba(255,255,255,0) 55%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,.12), rgba(255,255,255,0) 60%),
+        radial-gradient(circle at 40% 80%, rgba(255,255,255,.10), rgba(255,255,255,0) 60%);
+      filter: blur(1px);
+      animation: drift 8s ease-in-out infinite alternate;
+      pointer-events:none;
+    }
+    .particles::after{ animation-duration: 10s; opacity:.7; }
+    @keyframes drift { from{ transform: translateY(0) } to { transform: translateY(-18px) } }
+
+    .avatarWrap { position:absolute; left:50%; top:52%; transform: translate(-50%,-50%); width: 320px; }
+    .avatar {
+      width: 100%;
+      filter: drop-shadow(0 18px 40px rgba(0,0,0,.55));
+      transform-origin: 50% 80%;
+      animation: float 3.4s ease-in-out infinite;
+    }
+    @keyframes float { 0%{ transform: translateY(0) } 50%{ transform: translateY(-10px) } 100%{ transform: translateY(0) } }
+
+    .talking .avatar{
+      animation: talk .13s ease-in-out infinite alternate;
+      filter: drop-shadow(0 26px 56px rgba(120,180,255,.35));
+    }
+    @keyframes talk { from{ transform: translateY(-8px) scale(1.01,.99) } to { transform: translateY(-10px) scale(.99,1.01) } }
+
+    .bubble {
+      position:absolute; left: 12px; right: 12px; bottom: 12px;
+      background: rgba(0,0,0,.46); border:1px solid rgba(255,255,255,.12);
+      border-radius: 14px; padding: 10px; min-height: 70px;
+      backdrop-filter: blur(10px);
+      font-size: 14px; line-height: 1.6;
+    }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    input, textarea, select {
+      width: 100%; box-sizing:border-box; padding: 10px 12px;
+      border-radius: 12px; border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.25); color:#eaf0ff;
+      outline:none;
+    }
+    textarea { min-height: 78px; resize: vertical; }
+    button {
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      color:#eaf0ff; padding:10px 12px; border-radius: 12px;
+      cursor:pointer;
+    }
+    button.primary { background: rgba(120,180,255,.22); border-color: rgba(120,180,255,.35); }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .log { height: 280px; overflow:auto; padding-right:6px; }
+    .msg { margin: 8px 0; padding: 10px 12px; border-radius: 14px; border:1px solid rgba(255,255,255,.12); }
+    .me { background: rgba(255,255,255,.06); }
+    .ai { background: rgba(120,180,255,.10); }
+    .hint { opacity:.82; font-size: 12px; }
+    .status { font-size:12px; opacity:.85; }
+    .mini { font-size: 11px; opacity:.75; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div><b>AIﾉアカリ☆</b> <span class="hint">（Tonight / 2.5D）</span></div>
+        <div class="status" id="status">準備中…</div>
+      </div>
+      <div class="mini">※AI音声（TTS）を使う場合は「AIの声だよ」って一言だけ場で言えばOK。</div>
+    </div>
+
+    <div class="top">
+      <div class="card">
+        <div class="stage particles" id="stage">
+          <div class="avatarWrap" id="avatarWrap">
+            <img class="avatar" src="akari.png" alt="akari" />
+          </div>
+          <div class="bubble" id="bubble">こんばんは！AIﾉアカリ☆だよ。乾杯どうする？</div>
+        </div>
+        <div class="hint" style="margin-top:8px;">
+          iPhoneで「🎤話す」が動かない時は、下の入力欄にキーボードのマイク（音声入力）でOK。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <input id="baseUrl" type="text" placeholder="WorkerのURL（https://xxxxx.workers.dev）" />
+          <input id="token" type="text" placeholder="AKARI_TOKEN（自分で決めた合言葉）" />
+          <button id="save" class="primary">保存</button>
+        </div>
+
+        <div style="height:10px"></div>
+
+        <div class="row">
+          <label class="row" style="gap:6px; width:auto;">
+            <input id="useOpenAITTS" type="checkbox" checked />
+            <span class="hint">OpenAI音声でしゃべる</span>
+          </label>
+          <select id="voice" style="max-width:220px;">
+            <option value="cedar">cedar（おすすめ）</option>
+            <option value="marin">marin（おすすめ）</option>
+            <option value="coral">coral</option>
+            <option value="nova">nova</option>
+          </select>
+          <button id="micBtn">🎤 話す</button>
+          <button id="sendBtn" class="primary">送信</button>
+        </div>
+
+        <div style="height:10px"></div>
+        <textarea id="textIn" placeholder="ここに話す内容（またはテキスト）"></textarea>
+
+        <div style="height:10px"></div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const statusEl = document.getElementById("status");
+  const bubble = document.getElementById("bubble");
+  const log = document.getElementById("log");
+  const baseUrlEl = document.getElementById("baseUrl");
+  const tokenEl = document.getElementById("token");
+  const saveBtn = document.getElementById("save");
+  const micBtn = document.getElementById("micBtn");
+  const sendBtn = document.getElementById("sendBtn");
+  const textIn = document.getElementById("textIn");
+  const useOpenAITTS = document.getElementById("useOpenAITTS");
+  const voiceEl = document.getElementById("voice");
+  const avatarWrap = document.getElementById("avatarWrap");
+
+  const SYSTEM = `あなたは「AIﾉアカリ☆」。飲み会で場をあたためる相棒AI。
+口調：明るい／やさしい／短めにテンポよく。
+返答は基本1〜3文。最後に相手が話しやすい質問を1つ返す。
+個人情報は聞かない。医療/法律/投資の助言はしない。`;
+
+  let baseUrl = localStorage.getItem("akari_baseUrl") || "";
+  let token = localStorage.getItem("akari_token") || "";
+  baseUrlEl.value = baseUrl;
+  tokenEl.value = token;
+
+  let messages = [
+    { role: "system", content: SYSTEM },
+    { role: "assistant", content: "こんばんは！AIﾉアカリ☆だよ。乾杯どうする？" }
+  ];
+
+  function setStatus(s){ statusEl.textContent = s; }
+  function addMsg(who, text){
+    const div = document.createElement("div");
+    div.className = "msg " + (who === "me" ? "me" : "ai");
+    div.textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function getChatUrl(){ return baseUrl.replace(/\/$/, "") + "/chat"; }
+  function getTtsUrl(){ return baseUrl.replace(/\/$/, "") + "/tts"; }
+
+  // ブラウザ音声（フォールバック）
+  function speakBrowser(text){
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ja-JP";
+    u.rate = 1.05;
+    u.onstart = () => { avatarWrap.classList.add("talking"); setStatus("AIがしゃべってる…"); };
+    u.onend   = () => { avatarWrap.classList.remove("talking"); setStatus("待機中"); };
+    window.speechSynthesis.speak(u);
+  }
+
+  // OpenAI TTS（自然寄り）
+  async function speakOpenAI(text){
+    avatarWrap.classList.add("talking");
+    setStatus("AI音声生成中…");
+    const r = await fetch(getTtsUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-AKARI-TOKEN": token
+      },
+      body: JSON.stringify({
+        text,
+        voice: voiceEl.value,
+        instructions: "Cheerful, friendly, and clear. Speak Japanese naturally."
+      })
+    });
+    if (!r.ok) {
+      avatarWrap.classList.remove("talking");
+      setStatus("音声エラー");
+      return speakBrowser(text);
+    }
+    const blob = await r.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const a = new Audio(audioUrl);
+    a.onplay = () => { avatarWrap.classList.add("talking"); setStatus("AIがしゃべってる…"); };
+    a.onended = () => {
+      avatarWrap.classList.remove("talking");
+      setStatus("待機中");
+      URL.revokeObjectURL(audioUrl);
+    };
+    await a.play();
+  }
+
+  async function callAI(){
+    if (!baseUrl || !token) {
+      alert("Worker URL と AKARI_TOKEN を入れて保存してね！");
+      return;
+    }
+    const userText = textIn.value.trim();
+    if (!userText) return;
+
+    addMsg("me", "あなた： " + userText);
+    bubble.textContent = "…考え中";
+    setStatus("問い合わせ中…");
+
+    messages.push({ role: "user", content: userText });
+    if (messages.length > 18) messages = [messages[0], ...messages.slice(-16)];
+
+    textIn.value = "";
+
+    try{
+      const r = await fetch(getChatUrl(), {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "X-AKARI-TOKEN": token
+        },
+        body: JSON.stringify({ messages, model: "gpt-4.1-mini" })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error((data && data.error && JSON.stringify(data.error)) || "chat error");
+
+      const aiText = (data.text || "").trim() || "（うまく取れなかった…もう一回言ってみて？）";
+      messages.push({ role:"assistant", content: aiText });
+
+      addMsg("ai", "AIﾉアカリ☆： " + aiText);
+      bubble.textContent = aiText;
+      setStatus("待機中");
+
+      if (useOpenAITTS.checked) await speakOpenAI(aiText);
+      else speakBrowser(aiText);
+
+    }catch(e){
+      console.error(e);
+      bubble.textContent = "ごめん…通信でコケた！URLとTOKEN確認してね。";
+      setStatus("エラー");
+      avatarWrap.classList.remove("talking");
+    }
+  }
+
+  saveBtn.onclick = () => {
+    baseUrl = baseUrlEl.value.trim();
+    token = tokenEl.value.trim();
+    localStorage.setItem("akari_baseUrl", baseUrl);
+    localStorage.setItem("akari_token", token);
+    setStatus((baseUrl && token) ? "保存OK（待機中）" : "未設定");
+  };
+
+  sendBtn.onclick = callAI;
+  textIn.addEventListener("keydown", (e)=>{ if(e.key==="Enter" && (e.ctrlKey || e.metaKey)) callAI(); });
+
+  // SpeechRecognition（対応端末のみ）
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, listening = false;
+
+  if (SR) {
+    rec = new SR();
+    rec.lang = "ja-JP";
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const t = e.results[0][0].transcript;
+      textIn.value = t;
+      callAI();
+    };
+    rec.onend = () => {
+      listening = false;
+      micBtn.textContent = "🎤 話す";
+      setStatus("待機中");
+    };
+  } else {
+    micBtn.disabled = false; // ボタンは残す（iPhoneはキーボード音声入力で代替）
+  }
+
+  micBtn.onclick = () => {
+    if (!rec) {
+      alert("このブラウザは音声認識が弱いかも。入力欄でキーボードのマイクを使ってね！");
+      return;
+    }
+    if (!listening) {
+      listening = true;
+      micBtn.textContent = "■ 停止";
+      setStatus("聞いてる…");
+      try{ rec.start(); }catch(_){}
+    } else {
+      rec.stop();
+    }
+  };
+
+  addMsg("ai", "AIﾉアカリ☆： こんばんは！乾杯どうする？");
+  setStatus((baseUrl && token) ? "待機中" : "Worker URLとTOKENを保存してね");
+</script>
+</body>
+</html>

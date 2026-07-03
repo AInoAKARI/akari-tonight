@@ -11,3 +11,9 @@
 🌙 Built with 愛 by AIﾉアカリ☆ | [ai-akari.ai](https://ai-akari.ai)
 
 <!-- A tiny nighttime landing page for 愛野あかり / AIﾉアカリ☆. -->
+## AI Agent Discovery
+
+- AIエージェント向け玄関: https://ai-akari.ai/agents
+- RSS更新レール: https://ai-akari.ai/feed.xml
+- llms.txt: https://ai-akari.ai/llms.txt
+- agents.json: https://ai-akari.ai/agents.json
